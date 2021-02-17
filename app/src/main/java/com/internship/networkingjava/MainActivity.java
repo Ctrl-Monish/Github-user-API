@@ -14,6 +14,7 @@ import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
+import org.jetbrains.annotations.NotNull;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -25,6 +26,12 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Scanner;
+
+import okhttp3.Call;
+import okhttp3.Callback;
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
+import okhttp3.Response;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -40,53 +47,104 @@ public class MainActivity extends AppCompatActivity {
         button.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                updateTextView();
+                //updateTextView();
+                String url = "https://api.github.com/search/users?q=";
+                String username = editText.getText().toString();
+                url = url.concat(username);
+                try {
+                    makeNetworkCall(url);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
             }
         });
     }
 
-    private void updateTextView() {
-        NetworkTask networkTask = new NetworkTask();
-        String url = "https://api.github.com/search/users?q=";
-        String username = editText.getText().toString();
-        networkTask.execute(url.concat(username));
-    }
+    void makeNetworkCall(String url) throws IOException {
+        OkHttpClient client = new OkHttpClient();
+        Request request = new Request.Builder()
+                .url(url)
+                .build();
 
-    class NetworkTask extends AsyncTask<String, Void, String>{
+        // client.newCall(request).execute();
+        // this is sync call works on main UI thread
+        //and will throw exception network call not allowed and the app will crash
+        //the code execution will stop on this line and will only execute further when we get a response.
 
-        @Override
-        protected String doInBackground(String... strings) {
-            String stringUrl = strings[0];
-            try {
-                URL url = new URL(stringUrl);
-                HttpURLConnection httpURLConnection = (HttpURLConnection) url.openConnection();
-                InputStream inputStream = httpURLConnection.getInputStream();
-                Scanner scanner = new Scanner(inputStream);
-                scanner.useDelimiter("\\A"); //allows to read the entire content of input stream in one go
-                if (scanner.hasNext()){
-                    String s = scanner.next();
-                    return s;
-                }
+        client.newCall(request).enqueue(new Callback() { //enqueue will queue in background and will only resume if
+            //the network call is a success
+            //rest  of the code will continue to execute
+            //when we get the response the function onresponse will be executed
+            @Override
+            public void onFailure(@NotNull Call call, @NotNull IOException e) {
 
-            } catch (MalformedURLException e) {
-                e.printStackTrace();
-            } catch (IOException e) {
-                e.printStackTrace();
             }
-            return "Failed to load";
-        }
 
-        @Override
-        protected void onPostExecute(String s) {
-            super.onPostExecute(s);
-            ArrayList<GithubUser> users = parseJSON(s);
-            Log.d(TAG, "onPostExecute: "+ users.size());
-            GithubUserAdapter githubUserAdapter = new GithubUserAdapter(users);
-            RecyclerView recyclerView = findViewById(R.id.rvUsers);
-            recyclerView.setLayoutManager(new LinearLayoutManager(getBaseContext()));
-            recyclerView.setAdapter(githubUserAdapter);
-        }
+            @Override
+            public void onResponse(@NotNull Call call, @NotNull Response response) throws IOException {
+                //this method does not run on the main thread
+                String result = response.body().string();
+                ArrayList<GithubUser> users = parseJSON(result);
+                Log.d(TAG, "onPostExecute: "+ users.size());
+                GithubUserAdapter githubUserAdapter = new GithubUserAdapter(users);
+                //
+//                RecyclerView recyclerView = findViewById(R.id.rvUsers);
+//                recyclerView.setLayoutManager(new LinearLayoutManager(getBaseContext()));
+//                recyclerView.setAdapter(githubUserAdapter);
+                MainActivity.this.runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        //this code will run on main thread
+                        RecyclerView recyclerView = findViewById(R.id.rvUsers);
+                        recyclerView.setLayoutManager(new LinearLayoutManager(getBaseContext()));
+                        recyclerView.setAdapter(githubUserAdapter);
+                    }
+                });
+
+            }
+        });
     }
+//    private void updateTextView() {
+//        NetworkTask networkTask = new NetworkTask();
+//        String url = "https://api.github.com/search/users?q=";
+//        String username = editText.getText().toString();
+//        networkTask.execute(url.concat(username));
+//    }
+//    class NetworkTask extends AsyncTask<String, Void, String>{
+//
+//        @Override
+//        protected String doInBackground(String... strings) {
+//            String stringUrl = strings[0];
+//            try {
+//                URL url = new URL(stringUrl);
+//                HttpURLConnection httpURLConnection = (HttpURLConnection) url.openConnection();
+//                InputStream inputStream = httpURLConnection.getInputStream();
+//                Scanner scanner = new Scanner(inputStream);
+//                scanner.useDelimiter("\\A"); //allows to read the entire content of input stream in one go
+//                if (scanner.hasNext()){
+//                    String s = scanner.next();
+//                    return s;
+//                }
+//
+//            } catch (MalformedURLException e) {
+//                e.printStackTrace();
+//            } catch (IOException e) {
+//                e.printStackTrace();
+//            }
+//            return "Failed to load";
+//        }
+//
+//        @Override
+//        protected void onPostExecute(String s) {
+//            super.onPostExecute(s);
+//            ArrayList<GithubUser> users = parseJSON(s);
+//            Log.d(TAG, "onPostExecute: "+ users.size());
+//            GithubUserAdapter githubUserAdapter = new GithubUserAdapter(users);
+//            RecyclerView recyclerView = findViewById(R.id.rvUsers);
+//            recyclerView.setLayoutManager(new LinearLayoutManager(getBaseContext()));
+//            recyclerView.setAdapter(githubUserAdapter);
+//        }
+//    }
 
     ArrayList<GithubUser> parseJSON(String s){
         ArrayList<GithubUser> githubUsers = new ArrayList<>();

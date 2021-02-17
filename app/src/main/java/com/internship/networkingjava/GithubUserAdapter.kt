@@ -4,6 +4,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.recyclerview.widget.RecyclerView
+import com.squareup.picasso.Picasso
 import kotlinx.android.synthetic.main.item_row.view.*
 
 class GithubUserAdapter(val githubUsers : ArrayList<GithubUser>) : RecyclerView.Adapter<GithubUserAdapter.GithubViewHolder>() {
@@ -11,7 +12,7 @@ class GithubUserAdapter(val githubUsers : ArrayList<GithubUser>) : RecyclerView.
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int) = GithubViewHolder(LayoutInflater.from(parent?.context).inflate(R.layout.item_row, parent, false))
 
     override fun onBindViewHolder(holder: GithubViewHolder, position: Int) {
-        holder?.bind(githubUsers.get(position))
+        holder.bind(githubUsers[position])
     }
 
     override fun getItemCount() = githubUsers.size
@@ -19,8 +20,9 @@ class GithubUserAdapter(val githubUsers : ArrayList<GithubUser>) : RecyclerView.
     class GithubViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
 
         fun bind(githubUser: GithubUser){
-            itemView?.tvLogin?.text = githubUser.login
-            itemView?.tvhtmlurl?.text = githubUser.html_url
+            itemView.tvLogin?.text = githubUser.login
+            itemView.tvhtmlurl?.text = githubUser.html_url
+            Picasso.get().load(githubUser.avatar_url).into(itemView.imageViewProfile)
         }
 
     }
