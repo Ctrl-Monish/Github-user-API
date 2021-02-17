@@ -14,6 +14,8 @@ import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
+import com.google.gson.Gson;
+
 import org.jetbrains.annotations.NotNull;
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -84,9 +86,11 @@ public class MainActivity extends AppCompatActivity {
             public void onResponse(@NotNull Call call, @NotNull Response response) throws IOException {
                 //this method does not run on the main thread
                 String result = response.body().string();
-                ArrayList<GithubUser> users = parseJSON(result);
-                Log.d(TAG, "onPostExecute: "+ users.size());
-                GithubUserAdapter githubUserAdapter = new GithubUserAdapter(users);
+                //ArrayList<GithubUser> users = parseJSON(result);
+
+                Gson gson = new Gson();
+                ApiResult apiResult = gson.fromJson(result, ApiResult.class);
+                final GithubUserAdapter githubUserAdapter = new GithubUserAdapter(apiResult.getItems());
                 //
 //                RecyclerView recyclerView = findViewById(R.id.rvUsers);
 //                recyclerView.setLayoutManager(new LinearLayoutManager(getBaseContext()));
